@@ -13,7 +13,7 @@ def main(argv):
     opts, args = getopt.getopt(argv, "h", ["help", "dataset=", "split=", "classifier="])
     # handle args
     dataSet = className = "none"
-    split = 30
+    split = 70
 
     for key, val in opts:
         if key in ("-h", "--help"):
