@@ -1,6 +1,10 @@
 import sys
 
 
+########################################################################################
+# HardCoded
+# A very simple classifier. Just returns 0 for every prediction.
+########################################################################################
 class HardCoded:
     def train(self, attributes, targets, mapped):
         return
@@ -15,6 +19,11 @@ class HardCoded:
         return predicts
 
 
+########################################################################################
+# KNearestNeighbor
+# Uses the k nearest neighbors algorithm to predict a class. The parameter k is the
+# number of neighbors used for classification.
+########################################################################################
 class KNearestNeighbor:
     def __init__(self, k=1):
         self.k = k
@@ -49,7 +58,7 @@ class KNearestNeighbor:
                 dist += (v1[idx] - v2[idx]) * (v1[idx] - v2[idx])
             # otherwise distance is 1 unless the values are the same
             else:
-                dist += 0 if v1[idx] == v2[idx] else 1
+                dist += 0 if v1[idx] == v2[idx] else .5
         return dist
 
     # get the best prediction based of k nearest points
@@ -61,6 +70,11 @@ class KNearestNeighbor:
             i = 0
             while i < self.k:
                 if d < k_distances[i]:
+                    j = self.k - 1
+                    while j >= i:
+                        k_distances[j] = k_distances[j - 1]
+                        k_nearest[j] = k_nearest[j - 1]
+                        j -= 1
                     k_distances[i] = d
                     k_nearest[i] = idx
                     i = self.k

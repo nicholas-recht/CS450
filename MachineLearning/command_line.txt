@@ -1,0 +1,8 @@
+Car data set:
+--dataset=car.csv  --classifier=KNearestNeighbors --ordered=0:low|med|high|vhigh,1:low|med|high|vhigh,2:2|3|4|5more,3:2|4|more,4:small|med|big,5:low|med|high
+
+Iris data set:
+--dataset=iris.csv --classifier=KNearestNeighbors
+
+Breast cancer:
+--dataset=breast_cancer.csv --classifier=KNearestNeighbors --ignore=0
