@@ -15,6 +15,8 @@ import random
 #   - target - column number of the target (default is last column)
 #   - split - percentage of data to use for training (1 - 100)
 #   - ignore - array of columns in the data set to ignore
+#   - mapped - array of columns in the data set to be mapped from string values to integer values
+#   - norm - True or False - should non-mapped values be normalized?
 #
 # Members:
 #   - target_index - index of target column in data set
@@ -41,7 +43,7 @@ import random
 #   - test_targets - the normalized targets in the testing set
 ########################################################################################
 class DataSet:
-    def __init__(self, file_path, ordered=None, target=-1, split=70, ignore=None, missing='?'):
+    def __init__(self, file_path, ordered=None, target=-1, split=70, ignore=None, missing='?', mapped=None, norm=False):
         # load raw data
         reader = csv.reader(open(file_path, "rt"), delimiter=',')
         data_list = list(reader)
@@ -63,7 +65,21 @@ class DataSet:
                 tmp = ordered[target]
                 ordered.pop(target, None)
                 ordered[len(data_list[0]) - 1] = tmp
-            self.target_index = len(data_list[0]) - 1
+
+            # swap the mapped parameter if necessary
+            last = len(data_list[0]) - 1
+            if target in mapped:
+                # if they're both mapped then nothing needs to be done
+                # if only the target is mapped, then the parameter needs to be "swapped"
+                if last not in mapped:
+                    mapped.pop(target, None)
+                    mapped.append(target)
+            if last in mapped:
+                if target not in mapped:
+                    mapped.pop(last, None)
+                    mapped.append(last)
+
+            self.target_index = last
 
         # set ordered columns array
         self.ordered_columns = [False] * len(data_list[0])
@@ -73,12 +89,14 @@ class DataSet:
 
         # set mapped columns array
         self.mapped_columns = [False] * len(data_list[0])
+        for val in mapped:
+            self.mapped_columns[val] = True
+
+        # map the columns
         self.mappings_from_str = [None] * len(data_list[0])
         self.mappings_to_str = [None] * len(data_list[0])
         for idx, val in enumerate(data_list[0]):
-            if self.ordered_columns[idx] or not self.is_number(data_list[0][idx]):
-                if not self.ordered_columns[idx]:
-                    self.mapped_columns[idx] = True
+            if self.ordered_columns[idx] or self.mapped_columns[idx]:
                 self.map_column(data_list, idx)
 
         # get attributes and targets
@@ -95,16 +113,23 @@ class DataSet:
         self.targets = self.data_array[:, self.target_index:self.target_index + 1]
 
         # normalize data
-        self.data_normal = self.normalize(numpy.copy(self.data_array))
-        self.attributes_normal = self.data_normal[:, :self.target_index]
-        self.targets_normal = self.data_normal[:, self.target_index:self.target_index + 1]
+        if norm:
+            self.data_normal = self.normalize(numpy.copy(self.data_array))
+            self.attributes_normal = self.data_normal[:, :self.target_index]
+            self.targets_normal = self.data_normal[:, self.target_index:self.target_index + 1]
 
         # split into training and testing set
         num_in_split = len(self.data_array) * split // 100
-        self.train_attributes = self.attributes_normal[:num_in_split]
-        self.test_attributes = self.attributes_normal[num_in_split:]
-        self.train_targets = self.targets_normal[:num_in_split]
-        self.test_targets = self.targets_normal[num_in_split:]
+        if norm:
+            self.train_attributes = self.attributes_normal[:num_in_split]
+            self.test_attributes = self.attributes_normal[num_in_split:]
+            self.train_targets = self.targets_normal[:num_in_split]
+            self.test_targets = self.targets_normal[num_in_split:]
+        else:
+            self.train_attributes = self.attributes[:num_in_split]
+            self.test_attributes = self.attributes[num_in_split:]
+            self.train_targets = self.targets[:num_in_split]
+            self.test_targets = self.targets[num_in_split:]
 
     # map the values of the column to integer values
     def map_column(self, data_list, column):

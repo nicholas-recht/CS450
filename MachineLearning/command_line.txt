@@ -1,8 +1,15 @@
 Car data set:
---dataset=car.csv  --classifier=KNearestNeighbors --ordered=0:low|med|high|vhigh,1:low|med|high|vhigh,2:2|3|4|5more,3:2|4|more,4:small|med|big,5:low|med|high
+--dataset=car.csv --classifier=KNearestNeighbors --ordered=0:low|med|high|vhigh,1:low|med|high|vhigh,2:2|3|4|5more,3:2|4|more,4:small|med|big,5:low|med|high
+--dataset=car.csv --classifier=DecisionTree --mapped=0,1,2,3,4,5,6
 
 Iris data set:
 --dataset=iris.csv --classifier=KNearestNeighbors
 
 Breast cancer:
 --dataset=breast_cancer.csv --classifier=KNearestNeighbors --ignore=0
+
+Lenses:
+--dataset=lenses.csv --classifier=DecisionTree --ignore=0
+
+Voting:
+--dataset=voting.csv --classifier=DecisionTree --mapped=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16 --target=0
