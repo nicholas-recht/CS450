@@ -3,16 +3,17 @@ import getopt
 import classifier
 import preprocessor
 from sklearn.neighbors import KNeighborsClassifier
+from sklearn import tree
 
 
 def main(argv):
     usage = "\tusage: --dataset=[file_name] --split=[1-100] --classifier=[algorithm_name] --target=[index] \
             --ordered=[column:val0|val1|val2,column2:val0|val1],etc --ignore=[col1,col2,etc] \
-            --mapped=[1,2,3,etc] --normalize"
+            --mapped=[1,2,3,etc] --bins=[col:num_bins,col:num_bins] --normalize"
 
     # get args
     opts, args = getopt.getopt(argv[1:], "h", ["help", "dataset=", "split=", "classifier=", "target=", "ordered=",
-                                               "ignore=", "mapped=", "normalize"])
+                                               "ignore=", "mapped=", "normalize", "bins="])
     # handle args
     data_set = class_name = "none"
     split = 70
@@ -20,6 +21,7 @@ def main(argv):
     ordered = {}
     ignore = []
     mapped = []
+    bins = {}
     norm = False
 
     for key, val in opts:
@@ -47,6 +49,11 @@ def main(argv):
             entries = val.split(",")
             for entry in entries:
                 mapped.append(int(entry))
+        elif key == "--bins":
+            entries = val.split(",")
+            for entry in entries:
+                entry_split = entry.split(":")
+                bins[int(entry_split[0])] = int(entry_split[1])
         elif key == "--normalize":
             norm = True
 
@@ -63,7 +70,7 @@ def main(argv):
     # load from a csv file
     else:
         data = preprocessor.DataSet(data_set, ordered=ordered, target=target, split=split, ignore=ignore,
-                                    mapped=mapped, norm=norm)
+                                    mapped=mapped, norm=norm, bins=bins)
 
     # select the network to use
     net = None
@@ -95,6 +102,13 @@ def main(argv):
         # train
         net.train(data.train_attributes, data.train_targets)
         net.output_tree(net.root, 0)
+        # predict
+        predictions = net.predict(data.test_attributes)
+        predict_targets = data.test_targets
+    elif class_name == "DecisionTree_alt":
+        net = tree.DecisionTreeClassifier()
+        # train
+        net.fit(data.train_attributes, data.train_targets.ravel())
         # predict
         predictions = net.predict(data.test_attributes)
         predict_targets = data.test_targets

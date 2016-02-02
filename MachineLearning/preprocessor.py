@@ -1,6 +1,7 @@
 import csv
 import numpy
 import random
+import sys
 
 
 ########################################################################################
@@ -43,7 +44,8 @@ import random
 #   - test_targets - the normalized targets in the testing set
 ########################################################################################
 class DataSet:
-    def __init__(self, file_path, ordered=None, target=-1, split=70, ignore=None, missing='?', mapped=None, norm=False):
+    def __init__(self, file_path, ordered=None, target=-1, split=70, ignore=None, missing='?',
+                 mapped=None, norm=False, bins=None):
         # load raw data
         reader = csv.reader(open(file_path, "rt"), delimiter=',')
         data_list = list(reader)
@@ -65,6 +67,12 @@ class DataSet:
                 tmp = ordered[target]
                 ordered.pop(target, None)
                 ordered[len(data_list[0]) - 1] = tmp
+
+            # swap the bin parameter if necessary
+            if target in bins:
+                tmp = bins[target]
+                bins.pop(target, None)
+                bins[len(data_list[0]) - 1] = tmp
 
             # swap the mapped parameter if necessary
             last = len(data_list[0]) - 1
@@ -99,9 +107,13 @@ class DataSet:
             if self.ordered_columns[idx] or self.mapped_columns[idx]:
                 self.map_column(data_list, idx)
 
-        # get attributes and targets
+        # convert to floats and shuffle
         random.shuffle(data_list)
         self.data_array = numpy.array(data_list).astype('float')
+
+        # bin any data necessary
+        for col, num_bins in bins.items():
+            self.discretize(self.data_array, col, num_bins=num_bins)
 
         # "ignore" any given columns
         self.data_array = self.data_array.transpose()
@@ -109,6 +121,7 @@ class DataSet:
             self.data_array[col] = [1] * len(self.data_array[col])
         self.data_array = self.data_array.transpose()
 
+        # split into targets and attributes
         self.attributes = self.data_array[:, :self.target_index]
         self.targets = self.data_array[:, self.target_index:self.target_index + 1]
 
@@ -186,3 +199,22 @@ class DataSet:
             return True
         except ValueError:
             return False
+
+    def discretize(self, data, col, num_bins=3):
+        d_min = sys.float_info.max
+        d_max = sys.float_info.min
+
+        for row in data:
+            if row[col] > d_max:
+                d_max = row[col]
+            elif row[col] < d_min:
+                d_min = row[col]
+
+        bins = numpy.linspace(d_min, d_max, num_bins)
+        for row_idx, row in enumerate(data):
+            bin_idx = 0
+            while row[col] > bins[bin_idx] and bin_idx < num_bins:
+                bin_idx += 1
+            row[col] = bin_idx
+
+

@@ -161,19 +161,22 @@ class ID3:
             else:
                 targets_map[val] = 1
 
+        largest_num = 0
+        largest_target = -1
+        for target, num in targets_map.items():
+            if num > largest_num:
+                largest_target = target
+
         # if all remaining share the same target value, then return it as a leaf
         if len(targets_map) <= 1:
             return targets[0][0]
         # if there are no more features remaining, return target value with most
         elif len(features) <= 0:
-            largest_num = 0
-            largest_target = -1
-            for target, num in targets_map.items():
-                if num > largest_num:
-                    largest_target = target
             return largest_target
         else:
             node = ID3_Node()
+            # assign the default value as the target with the most records
+            node.default_value = largest_target
 
             # get the next feature to split on
             current_min = sys.float_info.max
@@ -216,7 +219,7 @@ class ID3:
     def traverse_tree(self, attr, node):
         # check and see if the branch exists
         if attr[node.attr_index] not in node.branches.keys():
-            return 0
+            return node.default_value
 
         branch = node.branches[attr[node.attr_index]]
 
@@ -306,3 +309,4 @@ class ID3_Node:
     def __init__(self):
         self.attr_index = 0
         self.branches = {}
+        self.default_value = 0
