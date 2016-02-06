@@ -112,6 +112,16 @@ def main(argv):
         # predict
         predictions = net.predict(data.test_attributes)
         predict_targets = data.test_targets
+    elif class_name == "Perceptron":
+        net = classifier.Perceptron()
+        # train
+        net.train(data.train_attributes, data.train_targets)
+        # predict
+        predictions = net.predict(data.test_attributes)
+        for predict in predictions:
+            print(predict)
+        sys.exit()
+
     else:
         print("Unrecognized classifier")
         sys.exit(1)

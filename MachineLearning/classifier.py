@@ -1,6 +1,7 @@
 import sys
 import numpy as np
 import copy
+import random
 
 
 ########################################################################################
@@ -310,3 +311,67 @@ class ID3_Node:
         self.attr_index = 0
         self.branches = {}
         self.default_value = 0
+
+
+########################################################################################
+# Perceptron
+# The simplest type of neural network
+########################################################################################
+class Perceptron:
+    def __init__(self, learning_rate=.1):
+        self.node_layers = []
+        self.num_inputs = 0
+        self.learning_rate = learning_rate
+        self.bias = 1
+
+    def train(self, attributes, targets):
+        self.num_inputs = len(attributes[0])
+
+        # create the first (and only) layer
+        self.node_layers.append(NodeLayer(self.num_inputs + 1, self.learning_rate))
+
+    def predict(self, attributes):
+        predicts = [None] * len(attributes)
+        for idx, val in enumerate(attributes):
+            predicts[idx] = self.test(attributes[idx])
+
+        return predicts
+
+    def test(self, input_row):
+        # create a copy
+        input_row_copy = np.append(input_row, [self.bias])
+
+        return self.node_layers[0].process(input_row_copy)
+
+
+class Node:
+    def __init__(self, num_inputs, learning_rate):
+        self.weights = np.random.ranf(num_inputs) - .5
+        self.learning_rate = learning_rate
+
+    def process(self, inputs):
+        dot_product = np.dot(self.weights, inputs)
+
+        if dot_product > 0:
+            return 1.0
+        else:
+            return 0.0
+
+    def adjust_weights(self, input, expected_val, actual_val):
+        for idx, val in enumerate(self.weights):
+            self.weights[idx] -= (actual_val - expected_val) * input * self.learning_rate
+
+
+class NodeLayer:
+    def __init__(self, num_inputs, learning_rate):
+        self.nodes = [None] * num_inputs
+
+        # init each node
+        for idx, val in enumerate(self.nodes):
+            self.nodes[idx] = Node(num_inputs, learning_rate)
+
+    def process(self, inputs):
+        output = [self.nodes[i].process(inputs) for i, v in enumerate(inputs)]
+
+        return output
+

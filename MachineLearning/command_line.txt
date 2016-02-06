@@ -5,6 +5,7 @@ Car data set:
 Iris data set:
 --dataset=iris.csv --classifier=KNearestNeighbors
 --dataset=iris.csv --classifier=DecisionTree --bins=0:3,1:3,2:3,3:3 --mapped=4
+--dataset=iris.csv --classifier=Perceptron --mapped=4 --norm
 
 Breast cancer:
 --dataset=breast_cancer.csv --classifier=KNearestNeighbors --ignore=0
@@ -20,3 +21,6 @@ Credit:
 
 Chess:
 --dataset=chess.csv --classifier=DecisionTree --mapped=0,2,4,6
+
+Diabetes:
+--dataset=diabetes.csv --classifier=Perceptron --norm
