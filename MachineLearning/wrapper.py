@@ -118,10 +118,7 @@ def main(argv):
         net.train(data.train_attributes, data.train_targets)
         # predict
         predictions = net.predict(data.test_attributes)
-        for predict in predictions:
-            print(predict)
-        sys.exit()
-
+        predict_targets = data.test_targets
     else:
         print("Unrecognized classifier")
         sys.exit(1)

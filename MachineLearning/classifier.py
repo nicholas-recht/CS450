@@ -2,6 +2,7 @@ import sys
 import numpy as np
 import copy
 import random
+import math
 
 
 ########################################################################################
@@ -175,7 +176,7 @@ class ID3:
         elif len(features) <= 0:
             return largest_target
         else:
-            node = ID3_Node()
+            node = ID3Node()
             # assign the default value as the target with the most records
             node.default_value = largest_target
 
@@ -225,7 +226,7 @@ class ID3:
         branch = node.branches[attr[node.attr_index]]
 
         # see if more nodes exist or else it's a leaf
-        if isinstance(branch, ID3_Node):
+        if isinstance(branch, ID3Node):
             return self.traverse_tree(attr, branch)
         else:
             return node.branches[attr[node.attr_index]]
@@ -238,7 +239,7 @@ class ID3:
             tabs += "\t"
             i += 1
 
-        if isinstance(node, ID3_Node):
+        if isinstance(node, ID3Node):
             print(tabs, "node attribute: ", node.attr_index)
             print(tabs, "children: ")
             for key, val in node.branches.items():
@@ -306,7 +307,7 @@ class ID3:
         return map
 
 
-class ID3_Node:
+class ID3Node:
     def __init__(self):
         self.attr_index = 0
         self.branches = {}
@@ -315,33 +316,60 @@ class ID3_Node:
 
 ########################################################################################
 # Perceptron
-# The simplest type of neural network
+# A neural network
 ########################################################################################
 class Perceptron:
-    def __init__(self, learning_rate=.1):
+    def __init__(self, learning_rate=.1, nodes_per_layer=list()):
         self.node_layers = []
-        self.num_inputs = 0
+        self.num_targets = 0
+        self.num_attributes = 0
         self.learning_rate = learning_rate
         self.bias = 1
+        self.nodes_per_layer = nodes_per_layer
 
     def train(self, attributes, targets):
-        self.num_inputs = len(attributes[0])
+        self.num_targets = len(np.unique(targets.ravel()))
+        self.num_attributes = len(attributes[0])
 
-        # create the first (and only) layer
-        self.node_layers.append(NodeLayer(self.num_inputs + 1, self.learning_rate))
+        # create the hidden layers
+        for idx in range(len(self.nodes_per_layer)):
+            if idx == 0:
+                self.node_layers.append(NodeLayer(self.nodes_per_layer[idx],
+                                                  self.num_attributes + 1, self.learning_rate))
+            else:
+                self.node_layers.append(NodeLayer(self.nodes_per_layer[idx],
+                                                  self.nodes_per_layer[idx - 1] + 1, self.learning_rate))
+
+        # create the output layer
+        if len(self.node_layers) == 0:
+            # if this is the only layer then the number of inputs is equal to the number of attributes + 1
+            self.node_layers.append(NodeLayer(self.num_targets, self.num_attributes + 1, self.learning_rate))
+        else:
+            # else the number of inputs is equal to the number of nodes in the last hidden layer + 1
+            self.node_layers.append(NodeLayer(self.num_targets,
+                                              self.nodes_per_layer[len(self.nodes_per_layer) - 1] + 1,
+                                              self.learning_rate))
 
     def predict(self, attributes):
         predicts = [None] * len(attributes)
         for idx, val in enumerate(attributes):
-            predicts[idx] = self.test(attributes[idx])
+            predicts[idx] = self.feed_forward(attributes[idx])
 
         return predicts
 
-    def test(self, input_row):
-        # create a copy
-        input_row_copy = np.append(input_row, [self.bias])
+    def feed_forward(self, input_row):
+        layer_output = []
+        for idx in range(len(self.node_layers)):
+            if idx == 0:
+                layer_output = self.node_layers[idx]\
+                    .process(np.append(input_row, [self.bias]))
+            else:
+                layer_output = self.node_layers[idx]\
+                    .process(np.append(layer_output, [self.bias]))
 
-        return self.node_layers[0].process(input_row_copy)
+        # return the 0 index of the arg sort because this will correspond to the maximum value
+        # from the output layer
+        return np.argsort(layer_output)[0]
 
 
 class Node:
@@ -352,10 +380,7 @@ class Node:
     def process(self, inputs):
         dot_product = np.dot(self.weights, inputs)
 
-        if dot_product > 0:
-            return 1.0
-        else:
-            return 0.0
+        return 1.0 / (1.0 + math.exp(-dot_product))
 
     def adjust_weights(self, input, expected_val, actual_val):
         for idx, val in enumerate(self.weights):
@@ -363,15 +388,15 @@ class Node:
 
 
 class NodeLayer:
-    def __init__(self, num_inputs, learning_rate):
-        self.nodes = [None] * num_inputs
+    def __init__(self, num_nodes, num_inputs, learning_rate):
+        self.nodes = [None] * num_nodes
 
         # init each node
         for idx, val in enumerate(self.nodes):
             self.nodes[idx] = Node(num_inputs, learning_rate)
 
     def process(self, inputs):
-        output = [self.nodes[i].process(inputs) for i, v in enumerate(inputs)]
+        output = [node.process(inputs) for node in self.nodes]
 
         return output
 
