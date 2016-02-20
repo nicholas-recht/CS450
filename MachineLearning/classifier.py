@@ -350,6 +350,32 @@ class Perceptron:
                                               self.nodes_per_layer[len(self.nodes_per_layer) - 1] + 1,
                                               self.learning_rate))
 
+        # split into training and validation set
+        # num_in_split = len(attributes) * 33 // 100
+        # v_attributes = attributes[:num_in_split]
+        # t_attributes = attributes[num_in_split:]
+        # v_targets = targets[:num_in_split]
+        # t_targets = targets[num_in_split:]
+
+        # start the learning process
+        for i in range(300):
+            # randomize the order each iteration
+            zipped = list(zip(attributes, targets))
+            random.shuffle(zipped)
+            attributes, targets = zip(*zipped)
+
+            num_right = 0
+
+            for idx, attr in enumerate(attributes):
+                predict = self.feed_forward(attr)
+                self.back_propagate(targets[idx][0])
+
+                # did we get it right?
+                if predict == targets[idx][0]:
+                    num_right += 1
+
+            print(str(num_right / len(attributes) * 100))
+
     def predict(self, attributes):
         predicts = [None] * len(attributes)
         for idx, val in enumerate(attributes):
@@ -369,34 +395,96 @@ class Perceptron:
 
         # return the 0 index of the arg sort because this will correspond to the maximum value
         # from the output layer
-        return np.argsort(layer_output)[0]
+        val = np.argmax(layer_output)
+        return val
+
+    def back_propagate(self, target):
+        # calculate the error on the layer first
+        self.node_layers[len(self.node_layers) - 1].calc_outer(target)
+
+        # calculate the error on the other layers
+        idx = len(self.node_layers) - 2
+        while idx >= 0:
+            self.node_layers[idx].calc_hidden(self.node_layers[idx + 1])
+            idx -= 1
+
+        # now adjust the weights
+        for node_layer in self.node_layers:
+            node_layer.back_propagate()
 
 
 class Node:
     def __init__(self, num_inputs, learning_rate):
         self.weights = np.random.ranf(num_inputs) - .5
         self.learning_rate = learning_rate
+        self.output = 0.0
+        self.error = 0.0
+        self.last_weight_change = [0.0] * num_inputs
+        self.weight_constant = .9
 
     def process(self, inputs):
         dot_product = np.dot(self.weights, inputs)
 
-        return 1.0 / (1.0 + math.exp(-dot_product))
+        self.output = 1.0 / (1.0 + math.exp(-dot_product))
 
-    def adjust_weights(self, input, expected_val, actual_val):
+        return self.output
+
+    def adjust_weights(self, inputs):
+        # adjust the weight for each inputs by the function:
+        #   w(i,j) = w(i,j) - learning_rate * error_rate * output[i]
         for idx, val in enumerate(self.weights):
-            self.weights[idx] -= (actual_val - expected_val) * input * self.learning_rate
+            weight_change = -(self.learning_rate * self.error * inputs[idx] +
+                              self.weight_constant * self.last_weight_change[idx])
+            self.weights[idx] += weight_change
+            self.last_weight_change[idx] = weight_change
+
+    def calc_outer_error(self, target):
+        """
+        Sets the error value for this node based on the given target value
+        :param target:
+        :return:
+        """
+        self.error = self.output * (1 - self.output) * (self.output - target)
+
+    def calc_hidden_error(self, index, node_layer):
+        """
+        Sets the error value for this node based on the given set of nodes in the next node layer
+        :param index:
+        :param node_layer:
+        :return:
+        """
+        weighted_sum = 0.0
+        for node in node_layer.nodes:
+            weighted_sum += node.error * node.weights[index]
+
+        self.error = self.output * (1 - self.output) * weighted_sum
 
 
 class NodeLayer:
     def __init__(self, num_nodes, num_inputs, learning_rate):
         self.nodes = [None] * num_nodes
-
+        self.inputs = []
         # init each node
         for idx, val in enumerate(self.nodes):
             self.nodes[idx] = Node(num_inputs, learning_rate)
 
     def process(self, inputs):
+        self.inputs = inputs  # save the inputs so they can be used for error calculation
         output = [node.process(inputs) for node in self.nodes]
 
         return output
 
+    def calc_outer(self, target):
+        for idx, node in enumerate(self.nodes):
+            if idx == target:
+                node.calc_outer_error(1)
+            else:
+                node.calc_outer_error(0)
+
+    def calc_hidden(self, prev_node_layer):
+        for idx, node in enumerate(self.nodes):
+            node.calc_hidden_error(idx, prev_node_layer)
+
+    def back_propagate(self):
+        for node in self.nodes:
+            node.adjust_weights(self.inputs)

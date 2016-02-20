@@ -113,7 +113,7 @@ def main(argv):
         predictions = net.predict(data.test_attributes)
         predict_targets = data.test_targets
     elif class_name == "Perceptron":
-        net = classifier.Perceptron()
+        net = classifier.Perceptron(.1, [4, 4])
         # train
         net.train(data.train_attributes, data.train_targets)
         # predict

@@ -23,4 +23,4 @@ Chess:
 --dataset=chess.csv --classifier=DecisionTree --mapped=0,2,4,6
 
 Diabetes:
---dataset=diabetes.csv --classifier=Perceptron --norm
+--dataset=diabetes.csv --classifier=Perceptron --norm --mapped=8
